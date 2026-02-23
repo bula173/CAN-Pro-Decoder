@@ -1,0 +1,50 @@
+# --- Python Base ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# --- Virtual Environment ---
+# We ignore the environment folder because others should 
+# recreate it using your requirements.txt
+can_env/
+venv/
+.venv/
+
+# --- PyInstaller ---
+# These are generated when you build your .exe
+*.spec
+build/
+dist/
+
+# --- Application Specific ---
+# Ignore the debug logs and the parsed output files
+*.log
+can_parser_debug.log
+can_parser.log
+
+# --- OS Specific ---
+.DS_Store
+Thumbs.db
+
+# --- IDEs ---
+.vscode/
+.idea/
+*.swp
