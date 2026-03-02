@@ -2,7 +2,7 @@ import PyInstaller.__main__
 import os
 
 # Define the name of your main script
-script_name = "can_analyzer.py" 
+script_name = "main.py" 
 
 PyInstaller.__main__.run([
     script_name,
