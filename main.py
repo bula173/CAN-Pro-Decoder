@@ -8,6 +8,10 @@ import json
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Set
 
+# Matplotlib integration (The part that was missing)
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.figure import Figure
+
 # Local modular imports
 from parser_engine import CANParser
 from ui_components import ExcelConfigDialog
@@ -15,7 +19,7 @@ from ui_components import ExcelConfigDialog
 class CANProAnalyzer:
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("CAN Pro-Decoder v0.2")
+        self.root.title("CAN Pro-Decoder v0.3")
         self.root.geometry("1600x950")
         
         # Internal State
@@ -26,6 +30,10 @@ class CANProAnalyzer:
         self.check_vars: Dict[str, tk.BooleanVar] = {}
         self._is_loading: bool = False
 
+        # Graph State (Kept for UI compatibility, logic removed)
+        self.graph_check_vars: Dict[str, tk.BooleanVar] = {}
+        self.active_graph_signals: Set[str] = set()
+
         # Session Paths
         self.dbc_path, self.asc_path, self.xl_path = "", "", ""
         self.current_mapping = {}
@@ -34,10 +42,7 @@ class CANProAnalyzer:
         self._init_ui()
 
     def _init_menu(self):
-        """Creates a professional top-level Menu Bar."""
         menubar = tk.Menu(self.root)
-        
-        # File Menu
         file_menu = tk.Menu(menubar, tearoff=0)
         file_menu.add_command(label="Load DBC", command=self.load_dbc)
         file_menu.add_command(label="Load ASC", command=self.load_asc)
@@ -45,272 +50,240 @@ class CANProAnalyzer:
         file_menu.add_command(label="Exit", command=self.root.quit)
         menubar.add_cascade(label="File", menu=file_menu)
         
-        # Tools Menu
         tools_menu = tk.Menu(menubar, tearoff=0)
         tools_menu.add_command(label="XLSM Translation Config", command=self.load_translation)
         menubar.add_cascade(label="Tools", menu=tools_menu)
         
-        # Session Menu
-        session_menu = tk.Menu(menubar, tearoff=0)
-        session_menu.add_command(label="Save Project Session", command=self.save_session)
-        session_menu.add_command(label="Load Project Session", command=self.load_session)
-        menubar.add_cascade(label="Session", menu=session_menu)
-
         self.root.config(menu=menubar)
 
     def _init_ui(self):
-        # --- ADVANCED SEARCH RIBBON ---
         search_ribbon = tk.Frame(self.root, bg="#2c3e50", height=45)
         search_ribbon.pack(fill=tk.X, side=tk.TOP)
-        
         lbl_style = {"bg": "#2c3e50", "fg": "white", "font": ("Segoe UI", 9, "bold")}
-        ent_cfg = {"font": ("Consolas", 10)}
-
         tk.Label(search_ribbon, text="  SEARCH FILTERS | ", **lbl_style).pack(side=tk.LEFT)
-        
-        tk.Label(search_ribbon, text="FRAME/ID:", **lbl_style).pack(side=tk.LEFT, padx=5)
-        self.search_frame = tk.StringVar()
-        self.search_frame.trace_add("write", lambda *_: self.apply_filter())
-        tk.Entry(search_ribbon, textvariable=self.search_frame, width=15, **ent_cfg).pack(side=tk.LEFT, padx=2)
+        self.search_frame = tk.StringVar(); self.search_frame.trace_add("write", lambda *_: self.apply_filter())
+        tk.Entry(search_ribbon, textvariable=self.search_frame, width=15).pack(side=tk.LEFT, padx=2)
 
-        tk.Label(search_ribbon, text="SIGNAL:", **lbl_style).pack(side=tk.LEFT, padx=5)
-        self.search_signal = tk.StringVar()
-        self.search_signal.trace_add("write", lambda *_: self.apply_filter())
-        tk.Entry(search_ribbon, textvariable=self.search_signal, width=20, **ent_cfg).pack(side=tk.LEFT, padx=2)
-
-        tk.Label(search_ribbon, text="VALUE:", **lbl_style).pack(side=tk.LEFT, padx=5)
-        self.search_value = tk.StringVar()
-        self.search_value.trace_add("write", lambda *_: self.apply_filter())
-        tk.Entry(search_ribbon, textvariable=self.search_value, width=10, **ent_cfg).pack(side=tk.LEFT, padx=2)
-
-        # Main Vertical Split
         self.v_split = tk.PanedWindow(self.root, orient=tk.VERTICAL, sashwidth=6, bg="#bdc3c7")
         self.v_split.pack(fill=tk.BOTH, expand=True)
-
-        # Horizontal Split for Top Views
         self.h_split = tk.PanedWindow(self.v_split, orient=tk.HORIZONTAL, sashwidth=6, bg="#bdc3c7")
         self.v_split.add(self.h_split, height=600)
 
-        # --- SIDEBAR (DBC Checkboxes) ---
         l_frame = tk.Frame(self.h_split, bg="#f8f9fa")
-        hdr = tk.Frame(l_frame, bg="#f8f9fa"); hdr.pack(fill=tk.X, padx=5, pady=5)
-        tk.Label(hdr, text="ACTIVE MESSAGES", bg="#f8f9fa", font=("Segoe UI", 9, "bold")).pack(side=tk.LEFT)
-        self.menu_btn = tk.Button(hdr, text="≡ Options", command=self._show_menu, relief="flat", font=("Segoe UI", 8)); self.menu_btn.pack(side=tk.RIGHT)
-        
-        sidebar_content = tk.Frame(l_frame, bg="white")
-        sidebar_content.pack(fill=tk.BOTH, expand=True)
-        self.canvas = tk.Canvas(sidebar_content, bg="white", highlightthickness=0)
+        self.canvas = tk.Canvas(l_frame, bg="white", highlightthickness=0)
         self.scroll_f = tk.Frame(self.canvas, bg="white")
-        scr_l = ttk.Scrollbar(sidebar_content, orient="vertical", command=self.canvas.yview)
-        
+        scr_l = ttk.Scrollbar(l_frame, orient="vertical", command=self.canvas.yview)
         self.canvas.configure(yscrollcommand=scr_l.set)
-        self.canvas_win = self.canvas.create_window((0,0), window=self.scroll_f, anchor="nw")
-        self.scroll_f.bind("<Configure>", lambda _: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
-        self.canvas.bind('<Configure>', lambda e: self.canvas.itemconfig(self.canvas_win, width=e.width))
-        
+        self.canvas.create_window((0,0), window=self.scroll_f, anchor="nw")
         scr_l.pack(side=tk.RIGHT, fill=tk.Y); self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        sidebar_content.bind("<Enter>", lambda _: self.canvas.bind_all("<MouseWheel>", self._on_mw))
-        sidebar_content.bind("<Leave>", lambda _: self.canvas.unbind_all("<MouseWheel>"))
-        self.h_split.add(l_frame, width=320)
+        self.h_split.add(l_frame, width=300)
 
-        # --- DATA TABLE (Middle) ---
         m_frame = tk.Frame(self.h_split)
-        
-        # Define the Grid weights: 
-        # Column 0 (Tree) expands. Column 1 (Scrollbar) stays fixed.
-        m_frame.columnconfigure(0, weight=1)
-        m_frame.rowconfigure(0, weight=1)
+        self.notebook = ttk.Notebook(m_frame)
+        self.notebook.pack(fill=tk.BOTH, expand=True)
 
-        self.data_tree = ttk.Treeview(m_frame, columns=("Time", "ID", "Name", "Raw Data"), show='headings')
-        
-        # Using a standard tk.Scrollbar can sometimes be more visible than ttk
-        scr_m = ttk.Scrollbar(m_frame, orient="vertical", command=self.data_tree.yview)
-        self.data_tree.configure(yscrollcommand=scr_m.set)
+        self.tab_data = tk.Frame(self.notebook)
+        self.notebook.add(self.tab_data, text=" 📝 Log Table ")
+        self._setup_table_view(self.tab_data)
 
-        for c in ("Time", "ID", "Name", "Raw Data"): 
-            self.data_tree.heading(c, text=c)
-            self.data_tree.column(c, anchor="center", width=100)
+        self.tab_graph = tk.Frame(self.notebook)
+        self.notebook.add(self.tab_graph, text=" 📈 Signal Analysis ")
+        self._setup_graph_view(self.tab_graph)
 
-        # GRID PLACEMENT:
-        # sticky="nsew" keeps the tree filling the entire left cell
-        self.data_tree.grid(row=0, column=0, sticky="nsew")
-        
-        # sticky="ns" keeps the scrollbar stretched from top to bottom on the right
-        scr_m.grid(row=0, column=1, sticky="ns")
+        self.h_split.add(m_frame, width=800)
 
-        self.data_tree.bind("<<TreeviewSelect>>", self.on_select_msg)
-        self.h_split.add(m_frame, width=650)
-
-        # --- SIGNAL INSPECTOR ---
         r_frame = tk.Frame(self.h_split)
         self.ins_tree = ttk.Treeview(r_frame, columns=("Signal", "Value", "Translation", "Unit"), show="headings")
         scr_r = ttk.Scrollbar(r_frame, orient="vertical", command=self.ins_tree.yview)
         self.ins_tree.configure(yscrollcommand=scr_r.set)
-        for c in ("Signal", "Value", "Translation", "Unit"):
-            self.ins_tree.heading(c, text=c, anchor="w"); self.ins_tree.column(c, anchor="w")
-        self.ins_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scr_r.pack(side=tk.RIGHT, fill=tk.Y)
-        self.h_split.add(r_frame, width=600)
+        for c in ("Signal", "Value", "Translation", "Unit"): self.ins_tree.heading(c, text=c)
+        self.ins_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True); scr_r.pack(side=tk.RIGHT, fill=tk.Y)
+        self.h_split.add(r_frame, width=400)
 
-        # --- SYSTEM LOG (Bottom Panel) ---
         log_frame = tk.Frame(self.v_split, bg="#2c3e50")
         self.log_text = tk.Text(log_frame, height=8, bg="#1e272e", fg="#00d8d6", font=("Consolas", 9), state='disabled')
         scr_log = ttk.Scrollbar(log_frame, orient="vertical", command=self.log_text.yview)
         self.log_text.configure(yscrollcommand=scr_log.set)
-        self.log_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scr_log.pack(side=tk.RIGHT, fill=tk.Y)
+        self.log_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True); scr_log.pack(side=tk.RIGHT, fill=tk.Y)
         self.v_split.add(log_frame, height=150)
 
-        # Footer
         self.footer = tk.Frame(self.root, bg="#ecf0f1", bd=1, relief=tk.SUNKEN)
         self.footer.pack(side=tk.BOTTOM, fill=tk.X)
-        self.lbl_dbc = tk.Label(self.footer, text="DBC: None", bg="#ecf0f1", fg="#27ae60", font=("Arial", 8, "bold"))
-        self.lbl_dbc.pack(side=tk.LEFT, padx=10)
-        self.lbl_asc = tk.Label(self.footer, text="ASC: None", bg="#ecf0f1", fg="#2980b9", font=("Arial", 8, "bold"))
-        self.lbl_asc.pack(side=tk.LEFT, padx=10)
-        self.status = tk.Label(self.footer, text="Ready", bg="#ecf0f1", font=("Arial", 8), anchor="w")
+        self.status = tk.Label(self.footer, text="Ready", bg="#ecf0f1", font=("Arial", 8))
         self.status.pack(side=tk.RIGHT, padx=10)
 
-        self.ctx = tk.Menu(self.root, tearoff=0)
-        self.ctx.add_command(label="Select All", command=self._select_all)
-        self.ctx.add_command(label="Deselect All", command=self._deselect_all)
-        self.ctx.add_command(label="Invert Selection", command=self._invert)
+    def _setup_table_view(self, parent):
+        parent.columnconfigure(0, weight=1); parent.rowconfigure(0, weight=1)
+        self.data_tree = ttk.Treeview(parent, columns=("Time", "ID", "Name", "Raw Data"), show='headings')
+        scr_m = ttk.Scrollbar(parent, orient="vertical", command=self.data_tree.yview)
+        self.data_tree.configure(yscrollcommand=scr_m.set)
+        for c in ("Time", "ID", "Name", "Raw Data"): 
+            self.data_tree.heading(c, text=c); self.data_tree.column(c, anchor="center")
+        self.data_tree.grid(row=0, column=0, sticky="nsew"); scr_m.grid(row=0, column=1, sticky="ns")
+        self.data_tree.bind("<<TreeviewSelect>>", self.on_select_msg)
 
-    def log_message(self, message: str, level: str = "INFO"):
-        ts = datetime.now().strftime("%H:%M:%S")
-        self.log_text.configure(state='normal')
-        self.log_text.insert(tk.END, f"[{ts}] {level}: {message}\n")
-        self.log_text.see(tk.END)
-        self.log_text.configure(state='disabled')
+    def _setup_graph_view(self, parent):
+        self.g_split = tk.PanedWindow(parent, orient=tk.HORIZONTAL, sashwidth=4)
+        self.g_split.pack(fill=tk.BOTH, expand=True)
 
-    def _on_mw(self, e): self.canvas.yview_scroll(int(-1*(e.delta/120)), "units")
-
-    # --- ADVANCED MULTI-FIELD FILTER ---
-    
-    def apply_filter(self):
-        if not self.raw_log_data: return
-        f_q = self.search_frame.get().lower().strip()
-        s_q = self.search_signal.get().lower().strip()
-        v_q = self.search_value.get().lower().strip()
+        # Left side: Signal Selection List
+        g_side = tk.Frame(self.g_split, bg="#f1f2f6", width=250)
+        tk.Label(g_side, text="SELECT SIGNALS", bg="#dfe4ea", font=("Segoe UI", 8, "bold")).pack(fill=tk.X)
         
-        self.data_tree.delete(*self.data_tree.get_children())
-        if not self.checked_frames: return
-
-        v_count = 0
-        for idx, item in enumerate(self.raw_log_data):
-            if item['name'] not in self.checked_frames: continue
-
-            # Filter logic: AND operation between all non-empty fields
-            f_match = not f_q or (f_q in item['name'].lower() or f_q in item['id'].lower())
-            sv_match = True
-            if s_q or v_q:
-                sv_match = False
-                for s_name, p_val in item['phys'].items():
-                    s_hit = not s_q or s_q in s_name.lower()
-                    v_hit = not v_q or v_q in str(p_val).lower()
-                    if s_hit and v_hit:
-                        sv_match = True; break
-            
-            if f_match and sv_match:
-                self.data_tree.insert("", "end", values=(item['ts'], item['id'], item['name'], item['hex']), iid=idx)
-                v_count += 1
-        self.status.config(text=f"Matches: {v_count}")
-
-    # --- LOADING & WORKER METHODS ---
-    def load_asc(self, path=None):
-        if self._is_loading or not self.db: return
-        if not path: path = filedialog.askopenfilename(filetypes=[("ASC", "*.asc")])
-        if path:
-            self.asc_path = path; self.lbl_asc.config(text=f"ASC: {os.path.basename(path)}")
-            self._is_loading = True; self.status.config(text="PARSING...", fg="red")
-            self.log_message(f"Processing {os.path.basename(path)}...")
-            threading.Thread(target=self._worker, args=(path,), daemon=True).start()
-
-    def _worker(self, path):
-        # We create a thread-safe wrapper for the logging function
-        def thread_safe_log(msg, level="INFO"):
-            self.root.after(0, lambda: self.log_message(msg, level))
-
-        # Pass the logger to the parser
-        data = CANParser.process_asc(path, self.db, log_func=thread_safe_log)
+        self.g_canvas = tk.Canvas(g_side, bg="#f1f2f6", highlightthickness=0)
+        self.g_scroll_f = tk.Frame(self.g_canvas, bg="#f1f2f6")
+        scr_g = ttk.Scrollbar(g_side, orient="vertical", command=self.g_canvas.yview)
+        self.g_canvas.configure(yscrollcommand=scr_g.set)
+        self.g_canvas.create_window((0,0), window=self.g_scroll_f, anchor="nw")
         
-        self.root.after(0, self._finalize, data)
+        scr_g.pack(side=tk.RIGHT, fill=tk.Y); self.g_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.g_split.add(g_side)
+
+        # Right side: The Actual Plot
+        g_plot_area = tk.Frame(self.g_split, bg="white")
+        self.fig = Figure(figsize=(5, 4), dpi=100)
+        self.ax = self.fig.add_subplot(111)
+        self.ax.set_title("Signal Timeline")
+        self.ax.set_facecolor('#fdfdfd')
+        self.ax.grid(True, linestyle='--', alpha=0.6)
+        
+        self.canvas_plot = FigureCanvasTkAgg(self.fig, master=g_plot_area)
+        self.canvas_plot.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        
+        # Add the Matplotlib Navigation Toolbar (Zoom, Pan, Save)
+        self.toolbar = NavigationToolbar2Tk(self.canvas_plot, g_plot_area)
+        self.toolbar.update()
+        
+        self.g_split.add(g_plot_area)
+
+    def update_graph(self):
+        """Redraws the graph based on checked signals in the sidebar."""
+        self.ax.clear()
+        self.ax.set_title("Signal Analysis")
+        self.ax.set_xlabel("Time (s)")
+        self.ax.grid(True, alpha=0.3)
+
+        has_data = False
+        # Loop through all signals available in the graph sidebar
+        for full_name, var in self.graph_check_vars.items():
+            if var.get():
+                msg_name, sig_name = full_name.split('.')
+                times, values = [], []
+                
+                # Extract data points from the raw log we parsed earlier
+                for entry in self.raw_log_data:
+                    if entry['name'] == msg_name:
+                        if sig_name in entry['phys']:
+                            times.append(float(entry['ts']))
+                            values.append(entry['phys'][sig_name])
+                
+                if times:
+                    self.ax.plot(times, values, label=sig_name, marker='o', markersize=3, linewidth=1)
+                    has_data = True
+        
+        if has_data:
+            self.ax.legend(loc='upper right', fontsize='x-small', frameon=True)
+        
+        self.fig.tight_layout()
+        self.canvas_plot.draw()
+
+    def _populate_graph_signals(self):
+        for w in self.g_scroll_f.winfo_children(): w.destroy()
+        self.graph_check_vars = {}
+        if not self.db: return
+        
+        for msg in sorted(self.db.messages, key=lambda x: x.name):
+            msg_lbl = tk.Label(self.g_scroll_f, text=msg.name, bg="#ced6e0", font=("Segoe UI", 8, "italic"))
+            msg_lbl.pack(fill=tk.X, pady=(5,0))
+            for sig in msg.signals:
+                var = tk.BooleanVar(value=False)
+                full_name = f"{msg.name}.{sig.name}"
+                self.graph_check_vars[full_name] = var
+                cb = tk.Checkbutton(self.g_scroll_f, text=sig.name, variable=var, 
+                                    bg="#f1f2f6", command=self.update_graph)
+                cb.pack(fill=tk.X, padx=10)
 
     def _finalize(self, data):
         self.raw_log_data = data; self._is_loading = False
         self.status.config(text=f"Ready | {len(data):,} messages.", fg="black")
         self.log_message(f"Load complete.")
+        self._populate_graph_signals() 
         self.apply_filter()
+
+    def load_asc(self, path=None):
+        if self._is_loading or not self.db: return
+        if not path: path = filedialog.askopenfilename(filetypes=[("ASC", "*.asc")])
+        if path:
+            self.asc_path = path; self.status.config(text="PARSING...", fg="red")
+            threading.Thread(target=self._worker, args=(path,), daemon=True).start()
+
+    def _worker(self, path):
+        def thread_safe_log(msg, level="INFO"): self.root.after(0, lambda: self.log_message(msg, level))
+        data = CANParser.process_asc(path, self.db, log_func=thread_safe_log)
+        self.root.after(0, self._finalize, data)
 
     def load_dbc(self, path=None):
         if not path: path = filedialog.askopenfilename(filetypes=[("DBC", "*.dbc")])
         if path:
             self.db = cantools.database.load_file(path, strict=False)
-            self.dbc_path = path; self.lbl_dbc.config(text=f"DBC: {os.path.basename(path)}")
-            self.log_message(f"Database loaded: {os.path.basename(path)}")
             self._populate_sidebar()
+            self._populate_graph_signals()
 
     def _populate_sidebar(self):
         for w in self.scroll_f.winfo_children(): w.destroy()
         self.check_vars = {}
+        # NEW: Reset the checked frames set
+        self.checked_frames = set() 
+        
         for msg in sorted(self.db.messages, key=lambda x: x.name):
-            var = tk.BooleanVar(value=True); self.check_vars[msg.name] = var
-            cb = tk.Checkbutton(self.scroll_f, text=msg.name, variable=var, bg="white", anchor="w", command=self._update_filter)
-            cb.pack(fill=tk.X); cb.bind("<Button-3>", lambda e: self.ctx.post(e.x_root, e.y_root))
-        self._update_filter()
+            var = tk.BooleanVar(value=True)
+            self.check_vars[msg.name] = var
+            self.checked_frames.add(msg.name) # Add to set immediately
+            cb = tk.Checkbutton(self.scroll_f, text=msg.name, variable=var, 
+                                bg="white", anchor="w", command=self._update_filter)
+            cb.pack(fill=tk.X)
 
     def _update_filter(self):
         self.checked_frames = {n for n, v in self.check_vars.items() if v.get()}
         self.apply_filter()
 
-    def load_translation(self):
-        path = filedialog.askopenfilename(filetypes=[("Excel", "*.xls *.xlsx *.xlsm")])
-        if path:
-            xl = pd.ExcelFile(path)
-            dlg = ExcelConfigDialog(self.root, xl); self.root.wait_window(dlg)
-            if dlg.result:
-                self.xl_path = path; self.current_mapping = dlg.result
-                df = xl.parse(dlg.result["tab"])
-                self.translation_table = {}
-                for _, r in df.iterrows():
-                    fid = str(r[dlg.result["ID"]]).strip().upper().replace("0X", "")
-                    rv = str(r[dlg.result["Hex"]]).strip().lower()
-                    self.translation_table.setdefault(fid, {})[rv] = str(r[dlg.result["Meaning"]])
-                self.log_message("Translation table updated.")
+    def apply_filter(self):
+        if not self.raw_log_data: 
+            print("Debug: No raw data found!") # Check your console
+            return
+            
+        self.data_tree.delete(*self.data_tree.get_children())
+        f_q = self.search_frame.get().lower().strip()
+        v_count = 0
+        
+        for idx, item in enumerate(self.raw_log_data):
+            # Debug: print(f"Checking {item['name']}") 
+            if item['name'] not in self.checked_frames: continue
+            
+            if f_q and not (f_q in item['name'].lower() or f_q in item['id'].lower()): 
+                continue
+                
+            # Use 'end' without a specific iid to let Tkinter handle it
+            self.data_tree.insert("", "end", values=(item['ts'], item['id'], item['name'], item['hex']))
+            v_count += 1
+            
+        self.status.config(text=f"Matches: {v_count}")
 
     def on_select_msg(self, _):
         if not (sel := self.data_tree.selection()): return
         item = self.raw_log_data[int(sel[0])]
         self.ins_tree.delete(*self.ins_tree.get_children())
-        f_id = item['id'].lstrip('0').upper()
         for s_n, p_v in item['phys'].items():
-            raw_v = int(item['raw'].get(s_n, 0))
-            keys = [str(raw_v), f"0x{raw_v:x}", f"0b{bin(raw_v)[2:].zfill(3)}"]
-            trans = "-"
-            if f_id in self.translation_table:
-                for k in keys:
-                    if k in self.translation_table[f_id]: trans = self.translation_table[f_id][k]; break
             unit = next((s.unit for s in item['def'].signals if s.name == s_n), "-")
-            self.ins_tree.insert("", "end", values=(s_n, p_v, trans, unit))
+            self.ins_tree.insert("", "end", values=(s_n, p_v, "-", unit))
 
-    def save_session(self):
-        d = {"dbc": self.dbc_path, "asc": self.asc_path, "xl": self.xl_path, "mapping": self.current_mapping, "filters": list(self.checked_frames)}
-        if p := filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON Project", "*.json")]):
-            with open(p, 'w') as f: json.dump(d, f, indent=4)
-            self.log_message("Session saved.")
+    def log_message(self, message, level="INFO"):
+        self.log_text.config(state='normal')
+        self.log_text.insert(tk.END, f"[{datetime.now().strftime('%H:%M:%S')}] [{level}] {message}\n")
+        self.log_text.see(tk.END)
+        self.log_text.config(state='disabled')
 
-    def load_session(self):
-        if p := filedialog.askopenfilename(filetypes=[("JSON Project", "*.json")]):
-            with open(p, 'r') as f: d = json.load(f)
-            if os.path.exists(d.get("dbc", "")): self.load_dbc(d["dbc"])
-            saved_f = d.get("filters", [])
-            for n, v in self.check_vars.items(): v.set(n in saved_f)
-            self._update_filter(); self.log_message("Session restored.")
-
-    def _show_menu(self): self.ctx.post(self.menu_btn.winfo_rootx(), self.menu_btn.winfo_rooty() + 25)
-    def _select_all(self): [v.set(True) for v in self.check_vars.values()]; self._update_filter()
-    def _deselect_all(self): [v.set(False) for v in self.check_vars.values()]; self._update_filter()
-    def _invert(self): [v.set(not v.get()) for v in self.check_vars.values()]; self._update_filter()
+    def load_translation(self): pass
 
 if __name__ == "__main__":
     root = tk.Tk(); app = CANProAnalyzer(root); root.mainloop()
