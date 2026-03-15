@@ -34,8 +34,8 @@ print(f"PyInstaller arguments: {args}\n")
 
 PyInstaller.__main__.run(args)
 
-print("\n✅ Build complete! Check the 'dist' folder for your executable.")
+print("\n[SUCCESS] Build complete! Check the 'dist' folder for your executable.")
 if is_windows:
-    print("📦 Executable: dist/CAN_Pro_Decoder.exe")
+    print("[OUTPUT] Executable: dist/CAN_Pro_Decoder.exe")
 else:
-    print("📦 Executable: dist/CAN_Pro_Decoder")
+    print("[OUTPUT] Executable: dist/CAN_Pro_Decoder")
