@@ -1,0 +1,51 @@
+name: Validate Build (PR & Main)
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-build.txt
+
+      - name: Run linting
+        run: ruff check .
+
+      - name: Run type checking
+        run: mypy main.py parser_engine.py ui_components.py --ignore-missing-imports
+
+      - name: Run tests
+        run: pytest -v --tb=short
+
+      - name: Build executable (validation only)
+        run: python build_exe.py
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-py${{ matrix.python-version }}
+          path: |
+            .pytest_cache/
+            htmlcov/
+          retention-days: 7

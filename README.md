@@ -11,7 +11,22 @@ A high-performance CAN log analyzer and signal visualizer built for Windows usin
 
 ## Quick Start
 
-### Step 1: Clone & Setup
+### Option 1: Download Pre-Built Windows Executable (Easiest)
+
+No installation or Python required!
+
+1. Go to [Releases](../../releases)
+2. Download the latest `CAN_Pro_Decoder.exe`
+3. Run the executable directly on Windows 7 or later
+
+**No Python installation needed** – everything is bundled into the executable.
+
+---
+
+### Option 2: Run from Source (Development)
+
+Clone & setup the project for development:
+
 ```bash
 git clone <repository-url>
 cd CAN-Pro-Decoder
@@ -24,7 +39,7 @@ The setup script will:
 - Install code quality tools (Black, Ruff, Mypy)
 - Set up pre-commit hooks
 
-### Step 2: Activate & Run
+Activate & run:
 ```bash
 # Activate virtual environment
 source venv/bin/activate              # macOS/Linux

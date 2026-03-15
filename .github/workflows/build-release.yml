@@ -1,0 +1,59 @@
+name: Build Windows Executable
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-build.txt
+
+      - name: Run quality checks
+        run: |
+          ruff check . --fix
+          black --check .
+
+      - name: Build executable
+        run: python build_exe.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CAN_Pro_Decoder_Windows
+          path: dist/CAN_Pro_Decoder.exe
+          retention-days: 30
+
+      - name: Upload to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/CAN_Pro_Decoder.exe
+          body: |
+            Windows executable for CAN Pro-Decoder
+
+            **Installation**: Download `CAN_Pro_Decoder.exe` and run directly (no installation required)
+
+            **Requirements**: Windows 7 or later, no additional Python installation needed
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
