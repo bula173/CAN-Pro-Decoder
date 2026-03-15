@@ -19,23 +19,12 @@ def sample_dbc_path() -> Path:
 
 @pytest.fixture
 def sample_dbc_db() -> cantools.database.Database:
-    """Create a minimal cantools database for testing."""
-    db = cantools.database.can.Database()
-    # Add sample message for testing
-    msg = cantools.database.can.Message(frame_id=0x123, name="TestMessage", length=8)
-    sig = cantools.database.can.Signal(
-        name="TestSignal",
-        start=0,
-        length=16,
-        byte_order="little_endian",
-        is_signed=False,
-        scale=1,
-        offset=0,
-        unit="",
-    )
-    msg.signals.append(sig)
-    db.add_message(msg)
-    return db
+    """Load the example DBC file for testing."""
+    sample_dir = Path(__file__).parent / "samples"
+    dbc_path = sample_dir / "example.dbc"
+    if not dbc_path.exists():
+        pytest.skip("example.dbc not found")
+    return cantools.database.load_file(str(dbc_path), strict=False)
 
 
 @pytest.fixture

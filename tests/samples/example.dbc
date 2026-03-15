@@ -49,11 +49,11 @@ BO_ 1024 VehicleSpeed: 8 ECU1
  SG_ ABS_Active : 24|1@1+ (1,0) [0|1] "" ECU2
  SG_ TC_Active : 25|1@1+ (1,0) [0|1] "" ECU2
 
-BO_ 2048 BatteryStatus: 4 ECU1
+BO_ 1536 BatteryStatus: 4 ECU1
  SG_ BatteryVoltage : 0|16@1+ (0.01,9) [9|16.38] "V" ECU2
  SG_ ChargingCurrent : 16|16@1- (0.1,-3276.8) [-3276.8|3276.8] "A" ECU2
 
-BO_ 4096 WarningFlags: 8 Gateway
+BO_ 2000 WarningFlags: 8 Gateway
  SG_ CheckEngine : 0|1@1+ (1,0) [0|1] "" ECU1,ECU2
  SG_ ABS_Fault : 1|1@1+ (1,0) [0|1] "" ECU1,ECU2
  SG_ TC_Fault : 2|1@1+ (1,0) [0|1] "" ECU1,ECU2
@@ -61,15 +61,13 @@ BO_ 4096 WarningFlags: 8 Gateway
  SG_ HighTemp : 4|1@1+ (1,0) [0|1] "" ECU1,ECU2
  SG_ LowBattery : 5|1@1+ (1,0) [0|1] "" ECU1,ECU2
 
-VAL_TABLE_ GearTable 0 "Park" 1 "Reverse" 2 "Neutral" 3 "Drive" 15 "Invalid" ;
-
-VAL_ 512 GearPosition GearTable ;
+VAL_ 512 GearPosition 0 "Park" 1 "Reverse" 2 "Neutral" 3 "Drive" 15 "Invalid" ;
 
 CM_ BO_ 256 "Engine parameters from ECU1";
 CM_ BO_ 512 "Transmission status and oil temperature";
 CM_ BO_ 1024 "Vehicle speed and wheel pulse data";
-CM_ BO_ 2048 "Battery voltage and charging current";
-CM_ BO_ 4096 "Various system warning flags";
+CM_ BO_ 1536 "Battery voltage and charging current";
+CM_ BO_ 2000 "Various system warning flags";
 CM_ SG_ 256 EngineSpeed "Engine RPM measured from crankshaft";
 CM_ SG_ 256 EngineTemp "Coolant temperature";
 CM_ SG_ 512 GearPosition "Current gear selection";
