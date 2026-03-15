@@ -1,19 +1,41 @@
+import platform
+from pathlib import Path
+
 import PyInstaller.__main__
+
+# Detect platform
+is_windows = platform.system() == "Windows"
+separator = ";" if is_windows else ":"
 
 # Define the name of your main script
 script_name = "main.py"
 
-PyInstaller.__main__.run(
-    [
-        script_name,
-        "--onefile",  # Pack everything into a single .exe
-        "--windowed",  # Prevent a command prompt from opening
-        "--name=CAN_Pro_Decoder",  # The name of your executable
-        "--clean",  # Clean cache before building
-        "--hidden-import=cantools",  # Ensure cantools is bundled
-        "--icon=app_icon.ico",  # THIS adds the icon to the .exe
-        "--add-data=app_icon.ico;.",  # This bundles the icon INSIDE the exe
-    ]
-)
+# Build arguments
+args = [
+    script_name,
+    "--onefile",  # Pack everything into a single .exe
+    "--windowed",  # Prevent a command prompt from opening
+    "--name=CAN_Pro_Decoder",  # The name of your executable
+    "--clean",  # Clean cache before building
+    "--hidden-import=cantools",  # Ensure cantools is bundled
+    "-y",  # Overwrite output without asking
+]
 
-print("\nBuild complete! Check the 'dist' folder for your executable.")
+# Only add icon if it exists
+icon_path = Path("app_icon.ico")
+if icon_path.exists():
+    args.append(f"--icon={icon_path}")
+    args.append(f"--add-data=app_icon.ico{separator}.")
+else:
+    print("Warning: app_icon.ico not found. Building without custom icon.")
+
+print(f"Building for {platform.system()} with separator: '{separator}'")
+print(f"PyInstaller arguments: {args}\n")
+
+PyInstaller.__main__.run(args)
+
+print("\n✅ Build complete! Check the 'dist' folder for your executable.")
+if is_windows:
+    print("📦 Executable: dist/CAN_Pro_Decoder.exe")
+else:
+    print("📦 Executable: dist/CAN_Pro_Decoder")
