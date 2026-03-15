@@ -1,0 +1,53 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Main Application",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
+        },
+        {
+            "name": "Python: Debug with Arguments",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
+        },
+        {
+            "name": "Python: Pytest (Current File)",
+            "type": "python",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "${file}",
+                "-v"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Pytest (All Tests)",
+            "type": "python",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "tests/",
+                "-v",
+                "--cov=."
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}

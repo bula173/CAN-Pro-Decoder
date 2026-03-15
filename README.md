@@ -9,15 +9,34 @@ A high-performance CAN log analyzer and signal visualizer built for Windows usin
 * **Signal Analysis**: Graph multiple signals on a synchronized timeline.
 * **Signal Inspector**: Detailed breakdown of physical values and units.
 
-## Installation (MSYS2 UCRT64)
+## Quick Start
 
-This project requires the Universal C Runtime (UCRT) version of Python for maximum stability.
+### Step 1: Clone & Setup
+```bash
+git clone <repository-url>
+cd CAN-Pro-Decoder
+python setup_dev.py
+```
 
-1. **Install MSYS2**: Download from [msys2.org](https://www.msys2.org/).
-2. **Open UCRT64 Terminal** (Yellow icon).
-3. **Install System Dependencies**:
-   ```bash
-   pacman -S --needed mingw-w64-ucrt-x86_64-python-pandas \
-                      mingw-w64-ucrt-x86_64-python-matplotlib \
-                      mingw-w64-ucrt-x86_64-python-pip \
-                      mingw-w64-ucrt-x86_64-python-pyinstaller
+The setup script will:
+- Create a Python virtual environment
+- Install all dependencies from `pyproject.toml`
+- Install code quality tools (Black, Ruff, Mypy)
+- Set up pre-commit hooks
+
+### Step 2: Activate & Run
+```bash
+# Activate virtual environment
+source venv/bin/activate              # macOS/Linux
+# or
+.\venv\Scripts\activate               # Windows
+
+# Run the application
+python main.py
+```
+
+For full development setup instructions, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Platform Support
+
+This project is optimized for **Windows** and tested on **MSYS2 UCRT64** environment. For MSYS2 installation instructions and system-level dependency management, refer to the [CONTRIBUTING.md](CONTRIBUTING.md) guide.

@@ -22,7 +22,7 @@ wheels/
 *.egg
 
 # --- Virtual Environment ---
-# We ignore the environment folder because others should 
+# We ignore the environment folder because others should
 # recreate it using your requirements.txt
 can_env/
 venv/
@@ -45,6 +45,31 @@ can_parser.log
 Thumbs.db
 
 # --- IDEs ---
-.vscode/
 .idea/
 *.swp
+
+# --- Testing & Coverage ---
+.pytest_cache/
+.coverage
+htmlcov/
+.hypothesis/
+
+# --- Type Checking ---
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# --- Linting ---
+.ruff_cache/
+
+# --- Pre-commit ---
+.pre-commit/
+
+# --- Build Tools ---
+.tox/
+.nox/
+
+# --- IDE Generated Files ---
+*.sublime-project
+*.sublime-workspace
+*.code-workspace

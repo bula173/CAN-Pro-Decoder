@@ -1,0 +1,84 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "can-pro-decoder"
+version = "0.3.0"
+description = "High-performance CAN log analyzer and signal visualizer for Windows"
+readme = "README.md"
+license = "MIT"
+authors = [
+    {name = "Marcin", email = "marcin@example.com"}
+]
+requires-python = ">=3.8"
+dependencies = [
+    "cantools>=41.1.1",
+    "pandas>=1.3.0",
+    "openpyxl>=3.0.0",
+    "matplotlib>=3.3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+    "pyinstaller>=6.0.0",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py38", "py39", "py310", "py311"]
+extend-exclude = '''
+/(
+  venv
+  | \.venv
+  | build
+  | dist
+  | __pycache__
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+exclude = [
+    ".git",
+    "__pycache__",
+    "venv",
+    ".venv",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+ignore_missing_imports = true
+disallow_untyped_defs = false
+show_error_codes = true
+check_untyped_defs = true
+plugins = []
+
+[tool.setuptools]
+py-modules = ["main", "parser_engine", "ui_components"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = "--cov=. --cov-report=html --cov-report=term-missing --cov-fail-under=30"
+markers = [
+    "unit: Unit tests for individual components",
+    "integration: Integration tests for workflows",
+    "gui: Tests requiring GUI interaction",
+]

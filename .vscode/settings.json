@@ -1,0 +1,44 @@
+{
+    "workbench.colorCustomizations": {},
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit",
+            "source.fixAll": "explicit"
+        }
+    },
+    "python.linting.enabled": true,
+    "python.linting.ruffEnabled": true,
+    "python.linting.ruffArgs": [
+        "--line-length=100"
+    ],
+    "python.formatting.provider": "black",
+    "python.formatting.blackArgs": [
+        "--line-length=100"
+    ],
+    "[json]": {
+        "editor.formatOnSave": true
+    },
+    "[yaml]": {
+        "editor.formatOnSave": true
+    },
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.analysis.typeCheckingMode": "basic",
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        "**/.pytest_cache": true,
+        "**/dist": true,
+        "**/build": true,
+        "**/.eggs": true,
+        "**/*.egg-info": true
+    },
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+    "editor.rulers": [100],
+    "editor.formatOnPaste": false
+}
