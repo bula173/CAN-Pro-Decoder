@@ -77,8 +77,8 @@ class CANParser:
 
                         # 6. DBC Decoding
                         msg_def = None
-                        phys_data = {}
-                        raw_vals = {}
+                        phys_data: Dict[str, Any] = {}
+                        raw_vals: Dict[str, Any] = {}
                         msg_name = f"Unknown_0x{can_id:X}"
 
                         if db:

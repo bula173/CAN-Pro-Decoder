@@ -34,7 +34,7 @@ class CANProAnalyzer:
 
         # Session Paths
         self.dbc_path, self.asc_path, self.xl_path = "", "", ""
-        self.current_mapping = {}
+        self.current_mapping: Dict[str, Any] = {}
 
         self._init_menu()
         self._init_ui()
@@ -58,7 +58,7 @@ class CANProAnalyzer:
         search_ribbon = tk.Frame(self.root, bg="#2c3e50", height=45)
         search_ribbon.pack(fill=tk.X, side=tk.TOP)
         lbl_style = {"bg": "#2c3e50", "fg": "white", "font": ("Segoe UI", 9, "bold")}
-        tk.Label(search_ribbon, text="  SEARCH FILTERS | ", **lbl_style).pack(side=tk.LEFT)
+        tk.Label(search_ribbon, text="  SEARCH FILTERS | ", **lbl_style).pack(side=tk.LEFT)  # type: ignore[arg-type]
         self.search_frame = tk.StringVar()
         self.search_frame.trace_add("write", lambda *_: self.apply_filter())
         tk.Entry(search_ribbon, textvariable=self.search_frame, width=15).pack(side=tk.LEFT, padx=2)
@@ -251,6 +251,7 @@ class CANProAnalyzer:
         def thread_safe_log(msg, level="INFO"):
             self.root.after(0, lambda: self.log_message(msg, level))
 
+        assert self.db is not None
         data = CANParser.process_asc(path, self.db, log_func=thread_safe_log)
         self.root.after(0, self._finalize, data)
 
@@ -258,7 +259,7 @@ class CANProAnalyzer:
         if not path:
             path = filedialog.askopenfilename(filetypes=[("DBC", "*.dbc")])
         if path:
-            self.db = cantools.database.load_file(path, strict=False)
+            self.db = cantools.database.load_file(path, strict=False)  # type: ignore[assignment]
             self._populate_sidebar()
             self._populate_graph_signals()
 
@@ -269,6 +270,7 @@ class CANProAnalyzer:
         # NEW: Reset the checked frames set
         self.checked_frames = set()
 
+        assert self.db is not None
         for msg in sorted(self.db.messages, key=lambda x: x.name):
             var = tk.BooleanVar(value=True)
             self.check_vars[msg.name] = var
