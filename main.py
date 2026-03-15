@@ -17,7 +17,7 @@ from parser_engine import CANParser
 class CANProAnalyzer:
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("CAN Pro-Decoder v0.3")
+        self.root.title("CAN Pro-Decoder v0.1.1")
         self.root.geometry("1600x950")
 
         # Internal State

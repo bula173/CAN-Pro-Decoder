@@ -1,4 +1,4 @@
-# CAN Pro-Decoder v0.3
+# CAN Pro-Decoder v0.1.1
 
 A high-performance CAN log analyzer and signal visualizer built for Windows using Python, Tkinter, and Matplotlib. Specifically optimized for the **MSYS2 UCRT64** environment.
 

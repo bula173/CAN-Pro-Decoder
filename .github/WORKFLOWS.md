@@ -84,8 +84,8 @@ pytest -v            # Verbose pytest output
 
 3. **Create your first release**:
    ```bash
-   git tag -a v0.3.0 -m "Release version 0.3.0"
-   git push origin v0.3.0
+   git tag -a v0.1.1 -m "Release version 0.1.1"
+   git push origin v0.1.1
    ```
    GitHub will automatically create a release and the workflow will build the executable
 
