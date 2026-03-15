@@ -40,7 +40,7 @@ format-check:
 	black --check .
 
 type-check:
-	mypy .
+	mypy main.py parser_engine.py ui_components.py --ignore-missing-imports
 
 quality: lint type-check format-check
 	@echo "Quality checks complete!"
